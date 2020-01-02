@@ -8,9 +8,6 @@ import (
 	"strconv"
 	"syscall"
 
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-
 	"github.com/wilgoz/go-url-shortener/http"
 	"github.com/wilgoz/go-url-shortener/repository/mongodb"
 	"github.com/wilgoz/go-url-shortener/repository/redis"
@@ -22,25 +19,9 @@ func main() {
 	service := shortener.NewRedirectService(repo)
 	handler := http.NewHandler(service)
 
-	e := echo.New()
-	e.Use(
-		middleware.Logger(),
-		middleware.Recover(),
-		middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins: []string{"*"},
-			AllowMethods: []string{
-				echo.GET,
-				echo.POST,
-			},
-		}),
-	)
-
-	e.GET("/:code", handler.Get)
-	e.POST("/", handler.Post)
-
 	errs := make(chan error, 2)
 	go func() {
-		errs <- e.Start(getPort())
+		errs <- handler.Listen()
 	}()
 
 	go func() {
@@ -52,16 +33,8 @@ func main() {
 	fmt.Printf("Terminated %s", <-errs)
 }
 
-func getPort() string {
-	port := "8080"
-	if os.Getenv("PORT") != "" {
-		port = os.Getenv("PORT")
-	}
-	return fmt.Sprintf(":%s", port)
-}
-
 // Choose either redis or mongoDB with the option of a redis cache layer
-// A URL shortener realistically has more writes than reads, thus adding a cache layer could actually result in a bottleneck
+// A URL shortener realistically has more writes than reads, thus adding a cache layer could actually be a bottleneck
 func getRepo() shortener.RedirectRepository {
 	switch os.Getenv("DB") {
 	case "redis":
@@ -71,7 +44,6 @@ func getRepo() shortener.RedirectRepository {
 			log.Fatal(err)
 		}
 		return repo
-
 	case "mongo":
 		mongoURL := os.Getenv("MONGO_URL")
 		mongoDB := os.Getenv("MONGO_DB")

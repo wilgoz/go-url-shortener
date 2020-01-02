@@ -27,7 +27,9 @@ func (r *redirectService) Find(shortened string) (*Redirect, error) {
 
 func (r *redirectService) Store(model *Redirect) error {
 	if err := validate.Validate(model); err != nil {
-		return errors.Wrap(ErrRedirectInvalid, "service.Redirect.Store")
+		return errors.Wrap(
+			ErrRedirectInvalid, "service.Redirect.Store",
+		)
 	}
 	model.Shortened = shortid.MustGenerate()
 	model.CreatedAt = time.Now().UTC().Unix()

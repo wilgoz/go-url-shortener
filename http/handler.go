@@ -1,28 +1,52 @@
 package http
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/pkg/errors"
 
 	"github.com/wilgoz/go-url-shortener/shortener"
 )
 
 type RedirectHandler interface {
-	Get(c echo.Context) error
-	Post(c echo.Context) error
+	Listen() error
 }
 
 type handler struct {
 	redirectService shortener.RedirectService
+	echo            *echo.Echo
 }
 
 func NewHandler(service shortener.RedirectService) RedirectHandler {
-	return &handler{service}
+	h := &handler{
+		redirectService: service,
+		echo:            echo.New(),
+	}
+	h.setHandlers()
+	return h
 }
 
-func (h *handler) Get(c echo.Context) error {
+func (h *handler) setHandlers() {
+	h.echo.Use(
+		middleware.Logger(),
+		middleware.Recover(),
+		middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{"*"},
+			AllowMethods: []string{
+				echo.GET,
+				echo.POST,
+			},
+		}),
+	)
+	h.echo.GET("/:code", h.get)
+	h.echo.POST("/", h.post)
+}
+
+func (h *handler) get(c echo.Context) error {
 	redirect, err := h.redirectService.Find(c.Param("code"))
 	if err != nil {
 		if errors.Cause(err) == shortener.ErrRedirectNotFound {
@@ -36,10 +60,12 @@ func (h *handler) Get(c echo.Context) error {
 			Message: http.StatusText(http.StatusInternalServerError),
 		}
 	}
-	return c.Redirect(http.StatusMovedPermanently, redirect.Original)
+	return c.Redirect(
+		http.StatusMovedPermanently, redirect.Original,
+	)
 }
 
-func (h *handler) Post(c echo.Context) error {
+func (h *handler) post(c echo.Context) error {
 	redirect := &shortener.Redirect{}
 	err := c.Bind(redirect)
 	if err != nil {
@@ -58,4 +84,16 @@ func (h *handler) Post(c echo.Context) error {
 		}
 	}
 	return c.JSON(http.StatusCreated, redirect)
+}
+
+func (h *handler) Listen() error {
+	return h.echo.Start(
+		func() string {
+			port := "8080"
+			if os.Getenv("PORT") != "" {
+				port = os.Getenv("PORT")
+			}
+			return fmt.Sprintf(":%s", port)
+		}(),
+	)
 }

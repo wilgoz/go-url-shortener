@@ -19,29 +19,35 @@ import (
 type mongoRepository struct {
 	client   *mongo.Client
 	database string
-	cache    shortener.RedirectRepository // redis
+	cache    shortener.RedirectRepository
 	timeout  time.Duration
 }
 
 func (m *mongoRepository) findInCache(shortened string) (*shortener.Redirect, error) {
 	redirect, err := m.cache.Find(shortened)
-	if err != nil {
-		// Add to the cache on cache misses
-		if errors.Cause(err) == shortener.ErrRedirectNotFound {
-			log.Println("cache miss")
-			redirect, err = m.findInDB(shortened)
-			if err == nil {
-				_ = m.cache.Store(redirect)
-				return redirect, nil
-			}
-		}
-		return nil, errors.Wrap(err, "repository.Find")
+	if err == nil {
+		log.Println("cache hit")
+		return redirect, nil
 	}
-	return redirect, nil
+	// Add to the cache on cache misses
+	if errors.Cause(err) == shortener.ErrRedirectNotFound {
+		log.Println("cache miss")
+		redirect, err = m.findInDB(shortened)
+		if err == nil {
+			_ = m.cache.Store(redirect)
+			return redirect, nil
+		}
+	}
+	return nil, errors.Wrap(
+		err, "repository.mongo.findInCache",
+	)
 }
 
 func (m *mongoRepository) findInDB(shortened string) (*shortener.Redirect, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		m.timeout,
+	)
 	defer cancel()
 
 	redirect := &shortener.Redirect{}
@@ -52,9 +58,13 @@ func (m *mongoRepository) findInDB(shortened string) (*shortener.Redirect, error
 
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
-			return nil, errors.Wrap(shortener.ErrRedirectNotFound, "repository.Find")
+			return nil, errors.Wrap(
+				shortener.ErrRedirectNotFound, "repository.mongo.findInDB",
+			)
 		}
-		return nil, errors.Wrap(err, "repository.Find")
+		return nil, errors.Wrap(
+			err, "repository.mongo.findInDB",
+		)
 	}
 	return redirect, nil
 }
@@ -67,7 +77,10 @@ func (m *mongoRepository) Find(shortened string) (*shortener.Redirect, error) {
 }
 
 func (m *mongoRepository) Store(model *shortener.Redirect) error {
-	ctx, cancel := context.WithTimeout(context.Background(), m.timeout)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		m.timeout,
+	)
 	defer cancel()
 	collection := m.client.Database(m.database).Collection("redirects")
 	_, err := collection.InsertOne(
@@ -79,15 +92,21 @@ func (m *mongoRepository) Store(model *shortener.Redirect) error {
 		},
 	)
 	if err != nil {
-		return errors.Wrap(err, "repository.Store")
+		return errors.Wrap(err, "repository.mongo.Store")
 	}
 	return nil
 }
 
 func newMongoClient(mongoURL string, mongoTimeout int) (*mongo.Client, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(mongoTimeout)*time.Second)
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Duration(mongoTimeout)*time.Second,
+	)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURL))
+	client, err := mongo.Connect(
+		ctx,
+		options.Client().ApplyURI(mongoURL),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +136,7 @@ func NewMongoRepo(mongoURL, mongoDB string, mongoTimeout int, cacheEnabled bool)
 	}
 	client, err := newMongoClient(mongoURL, mongoTimeout)
 	if err != nil {
-		return nil, errors.Wrap(err, "repository.NewMongoRepo")
+		return nil, errors.Wrap(err, "repository.mongo.NewMongoRepo")
 	}
 	repo.client = client
 	return repo, nil
