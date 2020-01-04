@@ -1,0 +1,9 @@
+port: ':8000'
+backend: 'mongo'
+redis:
+  redis_url: 'redis://localhost:6379'
+mongo:
+  mongo_url: "mongodb://localhost/shortener"
+  mongo_db: "shortener"
+  mongo_timeout: 5
+  cache_enabled: true

@@ -1,9 +1,9 @@
 package http
 
 import (
-	"fmt"
+	"context"
 	"net/http"
-	"os"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -13,7 +13,8 @@ import (
 )
 
 type RedirectHandler interface {
-	Listen() error
+	Listen(port string) error
+	Shutdown()
 }
 
 type handler struct {
@@ -35,7 +36,6 @@ func (h *handler) setHandlers() {
 		middleware.Logger(),
 		middleware.Recover(),
 		middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins: []string{"*"},
 			AllowMethods: []string{
 				echo.GET,
 				echo.POST,
@@ -86,14 +86,14 @@ func (h *handler) post(c echo.Context) error {
 	return c.JSON(http.StatusCreated, redirect)
 }
 
-func (h *handler) Listen() error {
-	return h.echo.Start(
-		func() string {
-			port := "8080"
-			if os.Getenv("PORT") != "" {
-				port = os.Getenv("PORT")
-			}
-			return fmt.Sprintf(":%s", port)
-		}(),
-	)
+func (h *handler) Listen(port string) error {
+	return h.echo.Start(port)
+}
+
+func (h *handler) Shutdown() {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := h.echo.Shutdown(ctx); err != nil {
+		h.echo.Logger.Fatal(err)
+	}
 }

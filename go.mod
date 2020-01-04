@@ -10,6 +10,7 @@ require (
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/labstack/echo/v4 v4.1.12
+	github.com/labstack/gommon v0.3.0
 	github.com/pkg/errors v0.8.1
 	github.com/teris-io/shortid v0.0.0-20171029131806-771a37caa5cf
 	github.com/tidwall/pretty v1.0.0 // indirect
@@ -18,4 +19,5 @@ require (
 	go.mongodb.org/mongo-driver v1.2.0
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	gopkg.in/dealancer/validate.v2 v2.1.0
+	gopkg.in/yaml.v2 v2.2.2
 )
