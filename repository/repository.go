@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"log"
+	"github.com/pkg/errors"
 
 	"github.com/wilgoz/go-url-shortener/config"
 	"github.com/wilgoz/go-url-shortener/repository/mongodb"
@@ -9,26 +9,26 @@ import (
 	"github.com/wilgoz/go-url-shortener/shortener"
 )
 
-func NewRepo() shortener.RedirectRepository {
+func NewRepo() (shortener.RedirectRepository, error) {
 	cfg := config.GetConfig()
 	switch cfg.Backend {
 	case "redis":
 		conf := cfg.Redis
 		repo, err := redis.NewRedisRepo(conf.RedisURL)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
-		return repo
+		return repo, nil
 	case "mongo":
 		conf := cfg.Mongo
 		repo, err := mongodb.NewMongoRepo(
 			conf.MongoURL, conf.MongoDB, conf.MongoTimeout, conf.CacheURL,
 		)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
-		return repo
+		return repo, nil
 	default:
-		return nil
+		return nil, errors.New("Unrecognizable backend")
 	}
 }

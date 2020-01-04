@@ -33,7 +33,9 @@ func (m *mongoRepository) findInCache(shortened string) (*shortener.Redirect, er
 		log.Println("cache miss")
 		redirect, err = m.findInDB(shortened)
 		if err == nil {
-			_ = m.cache.Store(redirect)
+			if err = m.cache.Store(redirect); err != nil {
+				log.Println("failed to update cache")
+			}
 			return redirect, nil
 		}
 	}

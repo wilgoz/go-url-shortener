@@ -17,23 +17,25 @@ func main() {
 	if err := config.SetConfigFromFile(); err != nil {
 		log.Fatal(err)
 	}
-
-	repo := repository.NewRepo()
+	repo, err := repository.NewRepo()
+	if err != nil {
+		log.Fatal(err)
+	}
 	service := shortener.NewRedirectService(repo)
 	handler := http.NewHandler(service)
 
-	errs := make(chan error, 2)
+	quitChan := make(chan error, 2)
 	go func() {
-		errs <- handler.Listen(config.GetConfig().Port)
+		quitChan <- handler.Listen(config.GetConfig().Port)
 	}()
 
 	go func() {
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGINT)
-		errs <- fmt.Errorf("%s", <-c)
+		quitChan <- fmt.Errorf("%s", <-c)
 	}()
 
-	err := <-errs
+	quit := <-quitChan
 	handler.Shutdown()
-	fmt.Printf("Terminated: %s", err)
+	fmt.Printf("Terminated: %s", quit)
 }
