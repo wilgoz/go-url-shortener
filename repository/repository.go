@@ -22,7 +22,7 @@ func NewRepo() shortener.RedirectRepository {
 	case "mongo":
 		conf := cfg.Mongo
 		repo, err := mongodb.NewMongoRepo(
-			conf.MongoURL, conf.MongoDB, conf.MongoTimeout, conf.CacheEnabled,
+			conf.MongoURL, conf.MongoDB, conf.MongoTimeout, conf.CacheURL,
 		)
 		if err != nil {
 			log.Fatal(err)

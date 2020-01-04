@@ -3,7 +3,6 @@ package mongodb
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -117,22 +116,21 @@ func newMongoClient(mongoURL string, mongoTimeout int) (*mongo.Client, error) {
 	return client, err
 }
 
-func initRedisCache() shortener.RedirectRepository {
-	redisURL := os.Getenv("REDIS_URL")
-	repo, err := redis.NewRedisRepo(redisURL)
+func initRedisCache(cacheURL string) shortener.RedirectRepository {
+	repo, err := redis.NewRedisRepo(cacheURL)
 	if err != nil {
 		log.Fatal(err)
 	}
 	return repo
 }
 
-func NewMongoRepo(mongoURL, mongoDB string, mongoTimeout int, cacheEnabled bool) (shortener.RedirectRepository, error) {
+func NewMongoRepo(mongoURL, mongoDB string, mongoTimeout int, cacheURL string) (shortener.RedirectRepository, error) {
 	repo := &mongoRepository{
 		database: mongoDB,
 		timeout:  time.Duration(mongoTimeout) * time.Second,
 	}
-	if cacheEnabled {
-		repo.cache = initRedisCache()
+	if cacheURL != "" {
+		repo.cache = initRedisCache(cacheURL)
 	}
 	client, err := newMongoClient(mongoURL, mongoTimeout)
 	if err != nil {

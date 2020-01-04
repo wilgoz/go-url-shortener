@@ -24,7 +24,7 @@ type mongoConf struct {
 	MongoURL     string `yaml:"mongo_url"`
 	MongoDB      string `yaml:"mongo_db"`
 	MongoTimeout int    `yaml:"mongo_timeout"`
-	CacheEnabled bool   `yaml:"cache_enabled"`
+	CacheURL     string `yaml:"cache_url"`
 }
 
 // Default config
@@ -38,7 +38,7 @@ var config = Configuration{
 		MongoURL:     "mongodb://localhost/shortener",
 		MongoDB:      "shortener",
 		MongoTimeout: 5,
-		CacheEnabled: true,
+		CacheURL:     "",
 	},
 }
 
