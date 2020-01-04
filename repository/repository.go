@@ -21,8 +21,19 @@ func NewRepo() (shortener.RedirectRepository, error) {
 		return repo, nil
 	case "mongo":
 		conf := cfg.Mongo
+		var cache shortener.RedirectRepository
+		if conf.CacheURL != "" {
+			var err error
+			cache, err = redis.NewRedisRepo(conf.CacheURL)
+			if err != nil {
+				return nil, err
+			}
+		}
 		repo, err := mongodb.NewMongoRepo(
-			conf.MongoURL, conf.MongoDB, conf.MongoTimeout, conf.CacheURL,
+			conf.MongoURL,
+			conf.MongoDB,
+			conf.MongoTimeout,
+			cache,
 		)
 		if err != nil {
 			return nil, err

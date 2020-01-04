@@ -11,7 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 
-	"github.com/wilgoz/go-url-shortener/repository/redis"
 	"github.com/wilgoz/go-url-shortener/shortener"
 )
 
@@ -118,21 +117,13 @@ func newMongoClient(mongoURL string, mongoTimeout int) (*mongo.Client, error) {
 	return client, err
 }
 
-func initRedisCache(cacheURL string) shortener.RedirectRepository {
-	repo, err := redis.NewRedisRepo(cacheURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return repo
-}
-
-func NewMongoRepo(mongoURL, mongoDB string, mongoTimeout int, cacheURL string) (shortener.RedirectRepository, error) {
+func NewMongoRepo(
+	mongoURL, mongoDB string, mongoTimeout int, cache shortener.RedirectRepository,
+) (shortener.RedirectRepository, error) {
 	repo := &mongoRepository{
 		database: mongoDB,
 		timeout:  time.Duration(mongoTimeout) * time.Second,
-	}
-	if cacheURL != "" {
-		repo.cache = initRedisCache(cacheURL)
+		cache:    cache,
 	}
 	client, err := newMongoClient(mongoURL, mongoTimeout)
 	if err != nil {
