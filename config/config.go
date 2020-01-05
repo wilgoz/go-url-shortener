@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Configuration defines the configuration formats
 type Configuration struct {
 	Backend string    `yaml:"backend"`
 	Port    string    `yaml:"port"`
@@ -42,21 +43,28 @@ var config = Configuration{
 	},
 }
 
-func SetConfigFromFile() error {
+// InitConfigFromFile attempts to initialize the system's configs through a config file
+// Uses the default configs if no config file is found
+func InitConfigFromFile() error {
 	file, err := ioutil.ReadFile("config/config.yaml")
 	if err == nil {
 		if err = yaml.Unmarshal(file, &config); err != nil {
-			return errors.Wrap(err, "Failed to unmarshal config file")
+			return errors.Wrap(
+				err, "Failed to unmarshal config file",
+			)
 		}
 	} else if !os.IsNotExist(err) {
-		return errors.Wrap(err, "Failed to read config file")
+		return errors.Wrap(
+			err, "Failed to read config file",
+		)
 	} else {
-		log.Println("No config file found. Proceed with default config")
+		log.Println("No config file found. Proceeding with default config")
 	}
 	log.Printf("Loaded configuration: %+v\n", config)
 	return nil
 }
 
+// GetConfig returns the current in-memory configurations
 func GetConfig() Configuration {
 	return config
 }

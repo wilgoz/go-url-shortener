@@ -12,6 +12,7 @@ import (
 	"github.com/wilgoz/go-url-shortener/shortener"
 )
 
+// RedirectHandler provides a utility http interface to listen and serve requests
 type RedirectHandler interface {
 	Listen(port string) error
 	Shutdown()
@@ -20,15 +21,6 @@ type RedirectHandler interface {
 type handler struct {
 	redirectService shortener.RedirectService
 	echo            *echo.Echo
-}
-
-func NewHandler(service shortener.RedirectService) RedirectHandler {
-	h := &handler{
-		redirectService: service,
-		echo:            echo.New(),
-	}
-	h.setHandlers()
-	return h
 }
 
 func (h *handler) setHandlers() {
@@ -44,6 +36,16 @@ func (h *handler) setHandlers() {
 	)
 	h.echo.GET("/:code", h.get)
 	h.echo.POST("/", h.post)
+}
+
+// NewHandler initializes server configs and routes and returns the handler
+func NewHandler(service shortener.RedirectService) RedirectHandler {
+	h := &handler{
+		redirectService: service,
+		echo:            echo.New(),
+	}
+	h.setHandlers()
+	return h
 }
 
 func (h *handler) get(c echo.Context) error {

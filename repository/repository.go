@@ -9,6 +9,7 @@ import (
 	"github.com/wilgoz/go-url-shortener/shortener"
 )
 
+// NewRepo initializes and returns a repository, given the specified backend
 func NewRepo() (shortener.RedirectRepository, error) {
 	cfg := config.GetConfig()
 	switch cfg.Backend {

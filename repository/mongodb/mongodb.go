@@ -21,13 +21,50 @@ type mongoRepository struct {
 	timeout  time.Duration
 }
 
+func newMongoClient(mongoURL string, mongoTimeout int) (*mongo.Client, error) {
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Duration(mongoTimeout)*time.Second,
+	)
+	defer cancel()
+	client, err := mongo.Connect(
+		ctx,
+		options.Client().ApplyURI(mongoURL),
+	)
+	if err != nil {
+		return nil, err
+	}
+	err = client.Ping(ctx, readpref.Primary())
+	if err != nil {
+		return nil, err
+	}
+	return client, err
+}
+
+// NewMongoRepo sets up a new mongoDB repo
+func NewMongoRepo(
+	mongoURL, mongoDB string, mongoTimeout int, cache shortener.RedirectRepository,
+) (shortener.RedirectRepository, error) {
+	repo := &mongoRepository{
+		database: mongoDB,
+		timeout:  time.Duration(mongoTimeout) * time.Second,
+		cache:    cache,
+	}
+	client, err := newMongoClient(mongoURL, mongoTimeout)
+	if err != nil {
+		return nil, errors.Wrap(err, "repository.mongo.NewMongoRepo")
+	}
+	repo.client = client
+	return repo, nil
+}
+
 func (m *mongoRepository) findInCache(shortened string) (*shortener.Redirect, error) {
 	redirect, err := m.cache.Find(shortened)
 	if err == nil {
 		log.Println("cache hit")
 		return redirect, nil
 	}
-	// Add to the cache on cache misses
+	// Finds from DB and updates the cache on cache misses
 	if errors.Cause(err) == shortener.ErrRedirectNotFound {
 		log.Println("cache miss")
 		redirect, err = m.findInDB(shortened)
@@ -95,40 +132,4 @@ func (m *mongoRepository) Store(model *shortener.Redirect) error {
 		return errors.Wrap(err, "repository.mongo.Store")
 	}
 	return nil
-}
-
-func newMongoClient(mongoURL string, mongoTimeout int) (*mongo.Client, error) {
-	ctx, cancel := context.WithTimeout(
-		context.Background(),
-		time.Duration(mongoTimeout)*time.Second,
-	)
-	defer cancel()
-	client, err := mongo.Connect(
-		ctx,
-		options.Client().ApplyURI(mongoURL),
-	)
-	if err != nil {
-		return nil, err
-	}
-	err = client.Ping(ctx, readpref.Primary())
-	if err != nil {
-		return nil, err
-	}
-	return client, err
-}
-
-func NewMongoRepo(
-	mongoURL, mongoDB string, mongoTimeout int, cache shortener.RedirectRepository,
-) (shortener.RedirectRepository, error) {
-	repo := &mongoRepository{
-		database: mongoDB,
-		timeout:  time.Duration(mongoTimeout) * time.Second,
-		cache:    cache,
-	}
-	client, err := newMongoClient(mongoURL, mongoTimeout)
-	if err != nil {
-		return nil, errors.Wrap(err, "repository.mongo.NewMongoRepo")
-	}
-	repo.client = client
-	return repo, nil
 }

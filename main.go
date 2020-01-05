@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	if err := config.SetConfigFromFile(); err != nil {
+	if err := config.InitConfigFromFile(); err != nil {
 		log.Fatal(err)
 	}
 	repo, err := repository.NewRepo()

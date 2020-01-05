@@ -9,14 +9,18 @@ import (
 )
 
 var (
+	// ErrRedirectNotFound signifies no possible redirects
 	ErrRedirectNotFound = errors.New("Redirect Not Found")
-	ErrRedirectInvalid  = errors.New("Redirect Invalid")
+
+	// ErrRedirectInvalid signifies an invalid redirect
+	ErrRedirectInvalid = errors.New("Redirect Invalid")
 )
 
 type redirectService struct {
 	redirectRepo RedirectRepository
 }
 
+// NewRedirectService initializes and returns the business logic service handler given the repo
 func NewRedirectService(repository RedirectRepository) RedirectRepository {
 	return &redirectService{repository}
 }

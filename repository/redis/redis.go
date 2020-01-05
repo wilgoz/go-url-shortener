@@ -13,6 +13,32 @@ type redisRepository struct {
 	client *redis.Client
 }
 
+func newRedisClient(redisURL string) (*redis.Client, error) {
+	opts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil, err
+	}
+	client := redis.NewClient(opts)
+	_, err = client.Ping().Result()
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+// NewRedisRepo initializes redis repo
+func NewRedisRepo(redisURL string) (shortener.RedirectRepository, error) {
+	repo := &redisRepository{}
+	client, err := newRedisClient(redisURL)
+	if err != nil {
+		return nil, errors.Wrap(
+			err, "repository.redis.NewRedisRepo",
+		)
+	}
+	repo.client = client
+	return repo, nil
+}
+
 func (r *redisRepository) Find(shortened string) (*shortener.Redirect, error) {
 	data, err := r.client.HGetAll(shortened).Result()
 	if err != nil {
@@ -52,29 +78,4 @@ func (r *redisRepository) Store(model *shortener.Redirect) error {
 		)
 	}
 	return nil
-}
-
-func newRedisClient(redisURL string) (*redis.Client, error) {
-	opts, err := redis.ParseURL(redisURL)
-	if err != nil {
-		return nil, err
-	}
-	client := redis.NewClient(opts)
-	_, err = client.Ping().Result()
-	if err != nil {
-		return nil, err
-	}
-	return client, nil
-}
-
-func NewRedisRepo(redisURL string) (shortener.RedirectRepository, error) {
-	repo := &redisRepository{}
-	client, err := newRedisClient(redisURL)
-	if err != nil {
-		return nil, errors.Wrap(
-			err, "repository.redis.NewRedisRepo",
-		)
-	}
-	repo.client = client
-	return repo, nil
 }
