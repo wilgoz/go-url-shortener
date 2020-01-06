@@ -37,5 +37,5 @@ func main() {
 
 	quit := <-quitChan
 	handler.Shutdown()
-	fmt.Printf("Terminated: %s", quit)
+	fmt.Printf("Terminated: %s\n", quit)
 }
