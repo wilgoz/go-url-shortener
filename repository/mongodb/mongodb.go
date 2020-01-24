@@ -59,6 +59,7 @@ func NewMongoRepo(
 }
 
 func (m *mongoRepository) findInCache(shortened string) (*shortener.Redirect, error) {
+	// Attempts to find in cache
 	redirect, err := m.cache.Find(shortened)
 	if err == nil {
 		log.Println("cache hit")
@@ -75,9 +76,7 @@ func (m *mongoRepository) findInCache(shortened string) (*shortener.Redirect, er
 			return redirect, nil
 		}
 	}
-	return nil, errors.Wrap(
-		err, "repository.mongo.findInCache",
-	)
+	return nil, errors.Wrap(err, "repository.mongo.findInCache")
 }
 
 func (m *mongoRepository) findInDB(shortened string) (*shortener.Redirect, error) {
@@ -86,24 +85,19 @@ func (m *mongoRepository) findInDB(shortened string) (*shortener.Redirect, error
 		m.timeout,
 	)
 	defer cancel()
-
-	redirect := &shortener.Redirect{}
 	collection := m.client.Database(m.database).Collection("redirects")
-
 	filter := bson.M{"shortened": shortened}
+	redirect := &shortener.Redirect{}
 	err := collection.FindOne(ctx, filter).Decode(redirect)
-
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, errors.Wrap(
-				shortener.ErrRedirectNotFound, "repository.mongo.findInDB",
-			)
-		}
-		return nil, errors.Wrap(
-			err, "repository.mongo.findInDB",
-		)
+	// Valid redirect found
+	if err == nil {
+		return redirect, nil
 	}
-	return redirect, nil
+	// No valid redirects
+	if err == mongo.ErrNoDocuments {
+		return nil, errors.Wrap(shortener.ErrRedirectNotFound, "repository.mongo.findInDB")
+	}
+	return nil, errors.Wrap(err, "repository.mongo.findInDB")
 }
 
 func (m *mongoRepository) Find(shortened string) (*shortener.Redirect, error) {

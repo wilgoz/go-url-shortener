@@ -9,9 +9,8 @@ import (
 	"github.com/wilgoz/go-url-shortener/shortener"
 )
 
-// NewRepo initializes and returns a repository, given the specified backend
-func NewRepo() (shortener.RedirectRepository, error) {
-	cfg := config.GetConfig()
+// NewRepo is a factory function that initializes the backend with the specified configurations
+func NewRepo(cfg *config.Configuration) (shortener.RedirectRepository, error) {
 	switch cfg.Backend {
 	case "redis":
 		conf := cfg.Redis

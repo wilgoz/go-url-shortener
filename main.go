@@ -17,7 +17,8 @@ func main() {
 	if err := config.InitConfigFromFile(); err != nil {
 		log.Fatal(err)
 	}
-	repo, err := repository.NewRepo()
+	cfg := config.GetConfig()
+	repo, err := repository.NewRepo(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -26,7 +27,7 @@ func main() {
 
 	quitChan := make(chan error, 2)
 	go func() {
-		quitChan <- handler.Listen(config.GetConfig().Port)
+		quitChan <- handler.Listen(cfg.Port)
 	}()
 
 	go func() {
